@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 
 # ---- App Setup ----
-st.set_page_config(page_title="Admin Mess Attendance", layout="centered")
+st.set_page_config(page_title="Mess Attendance", layout="centered")
 
 STUDENT_FILE = "students.csv"
 ATTENDANCE_FILE = "mess_attendance.csv"
@@ -35,20 +35,6 @@ def ensure_attendance_file():
 
 ensure_students_file()
 ensure_attendance_file()
-
-# ---- Admin Login (Using Session State) ----
-if 'admin_logged_in' not in st.session_state:
-    st.session_state.admin_logged_in = False
-
-if not st.session_state.admin_logged_in:
-    st.title("🔐 Admin Mess Attendance Panel")
-    admin_pass = st.text_input("Enter Admin Password", type="password")
-    if admin_pass == "admin123":
-        st.session_state.admin_logged_in = True
-        st.success("✅ Admin access granted")
-    else:
-        st.warning("Please enter valid admin password to continue.")
-    st.stop()
 
 # ---- Sidebar Menu ----
 menu = st.sidebar.radio("🔧 Menu", ["Add Student", "Search & Mark Attendance", "View Today's Attendance", "Delete Student"])
@@ -117,18 +103,12 @@ elif menu == "View Today's Attendance":
     st.header("📋 Today's Attendance Log")
     if st.checkbox("Show Attendance Table"):
         try:
-            # Read attendance records
             df = pd.read_csv(ATTENDANCE_FILE)
-            
-            # Get today's date
             today = pd.Timestamp(datetime.now().date())
             df["Date"] = pd.to_datetime(df["Date"])
-            
-            # Filter for today's records
             today_df = df[df["Date"] == today]
-            
+
             if not today_df.empty:
-                # Group by student ID to show total attendance per student
                 attendance_summary = today_df.groupby("ID").agg(
                     Total_Attendance=("ID", "count"),
                     Name=("Name", "first"),
@@ -136,7 +116,6 @@ elif menu == "View Today's Attendance":
                     Lunch=("Meal", lambda x: (x == "Lunch").sum())
                 ).reset_index()
 
-                # Display the table with total attendance
                 st.dataframe(attendance_summary)
             else:
                 st.info("ℹ️ No attendance records for today.")
@@ -159,11 +138,9 @@ elif menu == "Delete Student":
                 st.success(f"✅ Student Found: {student_name}")
 
                 if st.button(f"Delete {student_name}"):
-                    # Delete student from student file
                     students_df = students_df[students_df["ID"] != delete_id]
                     students_df.to_csv(STUDENT_FILE, index=False)
 
-                    # Delete all attendance records related to that student
                     attendance_df = pd.read_csv(ATTENDANCE_FILE)
                     attendance_df = attendance_df[attendance_df["ID"] != delete_id]
                     attendance_df.to_csv(ATTENDANCE_FILE, index=False)
